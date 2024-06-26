@@ -2541,95 +2541,63 @@ check_if_kong_is_animal:
 
 ;START OF PATCH (dk barrel kong number logic)
 update_kong_barrel_number:
-	LDA $4C,x
-	INC
-	CMP #$0004
-	BCC .no_overflow
-
-	LDA kong_status
-	AND #$00FF
-	BEQ .active_diddy_overflow
-	LDA kong_status
-	XBA
-	AND #$FF00
-	BEQ .active_diddy_overflow
-
-.no_diddy_overflow
-	LDA #$0000
-	BRA .no_overflow
+;check if new kong number is main kong
+	LDA $4C,x			;get kong number in barrel
+	INC				;increment kong number number
+	AND #$0003			;handle overflow
+	STA temp_32			;preserve new kong number
+	LDA kong_status			;get kong status
+	AND #$00FF			;get main kong number from kong status
+	CMP temp_32			;
+	BNE .check_follower_kong	;if main kong number doesn't match new kong number continue to follower kong check
+;new kong number is main kong
+	LDA temp_32			;else get new kong number
+	INC				;increment kong number again
+	AND #$0003			;handle overflow
+	STA temp_32			;preserve new kong number
+.check_follower_kong
+;check if follower kong is alive
+	LDA #$4000			;get follower kong flag
+	BIT $08C2			;
+	BEQ .update_barrel_number	;if no follower kong exists use new kong number for barrel and return
+;check if new kong number is follower kong
+	LDA kong_status			;get kong status
+	XBA				;
+	AND #$00FF			;get follower kong number from kong status
+	CMP temp_32			;
+	BNE .update_barrel_number	;if follower kong number doesn't match new kong number use new kong number for barrel and return
+;new kong number is follower kong
+	LDA temp_32			;get new kong number
+	INC				;increment kong number again
+	AND #$0003			;handle overflow
+	STA temp_32			;preserve new kong number
+;one last check for if kong number is main kong
+	LDA kong_status			;get kong status
+	AND #$00FF			;get main kong number from kong status
+	CMP temp_32			;
+	BNE .update_barrel_number	;if main kong number doesn't match new kong number use new kong number for barrel and return
+;new kong number is main kong
+	LDA temp_32			;else get new kong number
+	INC				;increment kong number again
+	AND #$0003			;handle overflow
+	STA temp_32			;preserve new kong number
 	
-.active_diddy_overflow
-	LDA #$0001
-
-.no_overflow
-	STA $4C,x
-	RTS
+.update_barrel_number
+	LDA temp_32			;get new kong number
+	STA $4C,x			;update kong number in barrel
+	RTS				;return
 
 kong_dk_barrel_check_logic:
 	%lda_sound(6, clock_tick)
 	JSL queue_sound_effect
 	LDX $64
 	JSR update_kong_barrel_number
-	
-	SEP #$20
-	LDA kong_status
-	CMP kong_status+1
-	REP #$20
-	BCC a_less_than_b
-	BRA a_more_than_b
-
-a_less_than_b:
-	active_kong_barrel_check_a:
-		LDA kong_status
-		AND #$00FF
-		CMP $4C,x
-		BNE inactive_kong_alive_barrel_check_a
-		JSR update_kong_barrel_number
-
-	inactive_kong_alive_barrel_check_a:
-		LDA #$4000
-		BIT $08C2
-		BEQ kong_barrel_check_done
-		
-	inactive_kong_barrel_check_a:
-		LDA kong_status
-		XBA
-		AND #$00FF
-		CMP $4C,x
-		BNE kong_barrel_check_done
-		JSR update_kong_barrel_number
-
-kong_barrel_check_done:
 	LDA $4C,x
 	CLC
 	ADC #!kong_dk_barrel_palette_index
 	JSL CODE_BB8C44
-	
 	STZ $4E,x
 	BRA kong_barrel_swap_logic_done
-	
-a_more_than_b:
-	inactive_kong_alive_barrel_check_b:
-		LDA #$4000
-		BIT $08C2
-		BEQ active_kong_barrel_check_b
-		
-	inactive_kong_barrel_check_b:
-		LDA kong_status
-		XBA
-		AND #$00FF
-		CMP $4C,x
-		BNE active_kong_barrel_check_b
-		JSR update_kong_barrel_number
-	
-	active_kong_barrel_check_b:
-		LDA kong_status
-		AND #$00FF
-		CMP $4C,x
-		BNE kong_barrel_check_done
-		JSR update_kong_barrel_number
-		BRA kong_barrel_check_done
-
 ;END OF PATCH
 
 dkbarrel_main:
@@ -12119,17 +12087,17 @@ CODE_B3D91D:
 	JMP (DATA_B3D923,x)			;$B3D920  /
 
 DATA_B3D923:
-	dw CODE_B3D939
-	dw CODE_B3D9CD
-	dw CODE_B3DAD6
-	dw CODE_B3DC21
-	dw CODE_B3DF48
-	dw CODE_B3DF48
-	dw CODE_B3E3AF
-	dw CODE_B3E4D9
-	dw CODE_B3E65C
-	dw CODE_B3E682
-	dw CODE_B3E768
+	dw CODE_B3D939				;00
+	dw CODE_B3D9CD				;02
+	dw CODE_B3DAD6				;04
+	dw CODE_B3DC21				;06
+	dw CODE_B3DF48				;08
+	dw CODE_B3DF48				;0A
+	dw CODE_B3E3AF				;0C
+	dw CODE_B3E4D9				;0E
+	dw CODE_B3E65C				;10
+	dw CODE_B3E682				;12
+	dw CODE_B3E768				;14
 
 
 CODE_B3D939:
@@ -14046,6 +14014,11 @@ CODE_B3E72A:
 	SEC					;$B3E72A  \
 	RTS					;$B3E72B  /
 
+;START OF PATCH (add BRL)
+CODE_B3E746_LONG:
+	BRL CODE_B3E746
+;END OF PATCH
+
 CODE_B3E72C:
 	LDX current_sprite			;$B3E72C  \
 	LDY $42,x				;$B3E72E   |
@@ -14053,11 +14026,95 @@ CODE_B3E72C:
 	BEQ CODE_B3E741				;$B3E733   |
 	LDA $44,x				;$B3E735   |
 	LSR A					;$B3E737   |
-	BCS CODE_B3E746				;$B3E738   |
+	BCS CODE_B3E746_LONG			;$B3E738   | PATCH: convert to BRL
 	LDA $2A,x				;$B3E73A   |
 	AND #$1000				;$B3E73C   |
-	BNE CODE_B3E746				;$B3E73F   |
+	BNE CODE_B3E746_LONG			;$B3E73F   | PATCH: convert to BRL
 CODE_B3E741:					;	   |
+	
+;START OF PATCH (handle kong barrel icons)
+	PHA
+	PHX					;preserve icon sprite
+	PHY					;preserve whatever Y is
+	LDA $42,x				;get barrel sprite
+	TAX
+	LDA $1E,x				;get blacklist kong flags
+	AND #$000F				;only get last 4 bits
+	BEQ .no_blacklist			;no blacklisted kongs, do normal icon behavior
+	LSR
+	BCC .set_diddy_icon			;if no diddy blacklist flag
+	LSR
+	BCC .set_dixie_icon			;if no dixie blacklist flag
+	LSR
+	BCC .set_donkey_icon			;if no donkey blacklist flag
+	LSR
+	BCC .set_kiddy_icon			;if no kiddy blacklist flag
+.no_blacklist
+	PLY					;retrieve Y
+	PLX					;retrieve X
+	PLA
+	BRA .update_sprite_graphic		;no blacklisted kongs, do normal icon behavior
+
+.set_diddy_icon
+	LDA #$0000				;diddy kong id
+	LDX #$3178				;diddy color icon sprite graphic
+	LDY #$4800				;diddy grayscale icon sprite graphic
+	BRA .choose_icon_color
+	
+.set_dixie_icon
+	LDA #$0001				;dixie kong id
+	LDX #$3174				;dixie color icon sprite graphic
+	LDY #$4804				;dixie grayscale icon sprite graphic
+	BRA .choose_icon_color
+	
+.set_donkey_icon
+	LDA #$0002				;donkey kong id
+	LDX #$4810				;donkey color icon sprite graphic
+	LDY #$4808				;donkey grayscale icon sprite graphic
+	BRA .choose_icon_color
+	
+.set_kiddy_icon
+	LDA #$0003				;kiddy kong id
+	LDX #$4814				;kiddy color icon sprite graphic
+	LDY #$480C				;kiddy grayscale icon sprite graphic
+.choose_icon_color
+	CMP $08A4				;get active kong id
+	BNE .gray_icon				;if the active kong isn't the same as whitelisted kong id for barrel use gray icon
+	TXA					;else use color icon
+	PLY					;retrieve Y
+	PLX					;retrieve X
+	STA $48,x				;write new graphics number to icon sprite
+	LDA $12,x				;get icon OAM
+	AND #$F1FF				;clear palette number from sprite OAM
+	STA $12,x				;save new OAM without palette number
+	LDX $0593				;get current kong
+	LDA $12,x				;get kong OAM
+	AND #$0E00				;extract palette number from kong OAM
+	LDX current_sprite			;get icon sprite
+	ORA $12,x				;apply active kong palette number to icon sprite OAM
+	STA $12,x				;save new OAM
+	PLA
+	BRA .update_sprite_graphic		;return to vanilla behavior
+
+.gray_icon
+	TYA					;use gray icon
+	PLY					;retrieve Y
+	PLX					;retrieve X
+	STA $48,x				;write new graphics number to icon sprite
+	LDA $12,x				;get icon OAM
+	AND #$F1FF				;clear palette number from sprite OAM
+	STA $12,x				;save new OAM without palette number
+	LDA $42,x				;get barrel sprite
+	TAX
+	LDA $12,x				;get barrel OAM
+	AND #$0E00				;extract palette number from barrel OAM
+	LDX current_sprite			;get icon sprite
+	ORA $12,x				;apply barrel palette number to icon sprite OAM
+	STA $12,x				;save new OAM
+	PLA
+.update_sprite_graphic
+;END OF PATCH
+
 	LDA $48,x				;$B3E741   |
 	STA $1A,x				;$B3E743   |
 	RTS					;$B3E745  /
@@ -14095,21 +14152,21 @@ CODE_B3E768:
 	JMP (DATA_B3E771,x)			;$B3E76E  /
 
 DATA_B3E771:
-	dw CODE_B3E78F
-	dw CODE_B3E8DD
-	dw CODE_B3E917
-	dw CODE_B3E979
-	dw CODE_B3E9C5
-	dw CODE_B3EACE
-	dw CODE_B3EAF5
-	dw CODE_B3EB2E
-	dw CODE_B3EB34
-	dw CODE_B3EB84
-	dw CODE_B3EBD8
-	dw CODE_B3EC1A
-	dw CODE_B3EC3C
-	dw CODE_B3EC61
-	dw CODE_B3EC72
+	dw CODE_B3E78F				;00
+	dw CODE_B3E8DD				;01
+	dw CODE_B3E917				;02
+	dw CODE_B3E979				;03
+	dw CODE_B3E9C5				;04
+	dw CODE_B3EACE				;05
+	dw CODE_B3EAF5				;06
+	dw CODE_B3EB2E				;07
+	dw CODE_B3EB34				;08
+	dw CODE_B3EB84				;09
+	dw CODE_B3EBD8				;0A
+	dw CODE_B3EC1A				;0B
+	dw CODE_B3EC3C				;0C
+	dw CODE_B3EC61				;0D
+	dw CODE_B3EC72				;0E
 
 
 CODE_B3E78F:
@@ -15135,44 +15192,102 @@ CODE_B3EEC5:
 	LDX $0597				;$B3EEC5  \
 	LDA $2E,x				;$B3EEC8   |
 	CMP #$002F				;$B3EECA   |
-	BEQ CODE_B3EF46				;$B3EECD   |
+	BEQ CODE_B3EF46_LONG			;$B3EECD   | PATCH: convert to BRL because BRA doesn't reach anymore
 	JSL CODE_BCFB58				;$B3EECF   |
 	LDA #$0008				;$B3EED3   |
 	PHK					;$B3EED6   |
 	%return(CODE_B3EEDD)			;$B3EED7   |
 	JML [$09F9]				;$B3EEDA  /
 
+;START OF PATCH (add support for donkey and kiddy barrel cannons)
+
+CODE_B3EF46_LONG:
+	BRL CODE_B3EF46				;this only exists because our new code makes certain branches too far
+
+check_if_kong_can_enter_barrel:
+	AND $1E,x				;compare our current kong flag in A to blacklist kong flags of barrel
+	AND #$000F				;only get last 4 bits (1 for each kong)
+	BNE .cannot_enter			;if any bits made it through that means we're not allowed to enter as this kong
+	CLC					;else tell the routine caller we can enter the barrel
+	RTS					;return
+	
+.cannot_enter
+	SEC					;tell the routine caller we can NOT enter the barrel
+	RTS					;return
+
 CODE_B3EEDD:
-	BCC CODE_B3EF44				;$B3EEDD  \
+	BCC .cannot_enter_barrel		;$B3EEDD  \
 	LDA $09F5				;$B3EEDF   |
 	AND #$0406				;$B3EEE2   |
-	BEQ CODE_B3EF44				;$B3EEE5   |
+	BEQ .cannot_enter_barrel		;$B3EEE5   |
 	LDX current_sprite			;$B3EEE7   |
-	LDA $46,x				;$B3EEE9   |
-	AND #$0003				;$B3EEEB   |
-	BEQ CODE_B3EF0E				;$B3EEEE   |
-	CMP #$0003				;$B3EEF0   |
-	BEQ CODE_B3EF44				;$B3EEF3   |
-	LDY $6A					;$B3EEF5   |
-	AND #$0001				;$B3EEF7   |
-	BNE CODE_B3EF06				;$B3EEFA   |
-	LDA $0000,y				;$B3EEFC   |
-	CMP #$00E8				;$B3EEFF   |
-	BNE CODE_B3EF0E				;$B3EF02   |
-	BRA CODE_B3EF44				;$B3EF04  /
 
-CODE_B3EF06:
-	LDA $0000,y				;$B3EF06  \
-	CMP #$00E4				;$B3EF09   |
-	BEQ CODE_B3EF44				;$B3EF0C   |
-CODE_B3EF0E:					;	   |
-	LDA $6A					;$B3EF0E   |
-	CMP $0597				;$B3EF10   |
-	BEQ CODE_B3EF6A				;$B3EF13   |
+;NOTE: THIS BLOCK IS PROBABLY REDUNDAND NOW
+	LDA $1E,x				;$B3EEE9   |
+	AND #$000F				;$B3EEEB   | mask all bits that aren't blacklist kong flags
+	BEQ .can_enter_barrel			;$B3EEEE   | if no blacklist kong flags are set enter the barrel
+	CMP #$000F				;$B3EEF0   |
+	BEQ .cannot_enter_barrel		;$B3EEF3   | if all blacklist kong flags are set don't enter the barrel
+;END OF PROBABLY REDUNDAND BLOCK
+	LDY $6A					;$B3EEF5   | get sprite that the barrel collided with
+	;AND #$0001				;$B3EEF7   |
+	;BNE .dixie_barrel			;$B3EEFA   |
+	;LDA $0000,y				;$B3EEFC   |
+	;CMP #$00E8				;$B3EEFF   |
+	;BNE .check_if_collision_was_follower	;$B3EF02   |
+	;BRA clc_rts_B3EF44			;$B3EF04  /
+	LDA $0000,y				;get id of collided sprite
+	CMP #$0324
+	BEQ .collide_with_kiddy			;if barrel collided with kiddy
+	CMP #$0320
+	BEQ .collide_with_donkey		;if barrel collided with donkey
+	CMP #$00E8
+	BEQ .collide_with_dixie			;if barrel collided with dixie
+.collide_with_diddy				;since no other kong was detected it was probably diddy
+	LDA #$0001				;load diddy's blacklist bit
+	BRA .next_check
+	
+.collide_with_dixie
+	LDA #$0002				;load dixie's blacklist bit
+	BRA .next_check
+	
+.collide_with_donkey
+	LDA #$0004				;load donkey's blacklist bit
+	BRA .next_check
+	
+.collide_with_kiddy
+	LDA #$0008				;load kiddy's blacklist bit
+.next_check
+	JSR check_if_kong_can_enter_barrel	;check if kong is blacklisted from barrel entry
+	BCC .can_enter_barrel			;if kong can't enter barrel
+.cannot_enter_barrel
+	CLC					;the kong didn't enter the barrel
+	RTS					;return
+
+.can_enter_barrel
+;check if kong collision was second kong
+	SEP #$20
+	CMP kong_status+1			;get follower kong number
+	REP #$20
+	BEQ .collide_with_follower
+	BRA CODE_B3EF15				;redirect back to vanilla code for handling barrel entry
+	
+.collide_with_follower
+	BRA CODE_B3EF6A				;redirect back to vanilla code for handling follower barrel entry
+	
+;.dixie_barrel
+;	LDA $0000,y				;$B3EF06  \
+;	CMP #$00E4				;$B3EF09   |
+;	BEQ clc_rts_B3EF44			;$B3EF0C   |
+;.check_if_collision_was_follower		;	   |
+;	LDA $6A					;$B3EF0E   |\
+;	CMP $0597				;$B3EF10   | | check if collided kong is follower kong
+;	BEQ CODE_B3EF6A				;$B3EF13   |/
+
 CODE_B3EF15:					;	   |
 	LDA #$0010				;$B3EF15   |
 	JSL CODE_B8D8BA				;$B3EF18   |
-	BCS CODE_B3EF44				;$B3EF1C   |
+	BCS clc_rts_B3EF44			;$B3EF1C   |
 	LDA #CODE_B3EF84			;$B3EF1E   |
 	STA $0A8A				;$B3EF21   |
 	LDA.w #CODE_B3EF84>>16			;$B3EF24   |
@@ -15188,7 +15303,7 @@ CODE_B3EF2A:					;	   |
 	SEC					;$B3EF42   |
 	RTS					;$B3EF43  /
 
-CODE_B3EF44:
+clc_rts_B3EF44:
 	CLC					;$B3EF44  \
 	RTS					;$B3EF45  /
 
@@ -15196,7 +15311,7 @@ CODE_B3EF46:
 	LDX $0597				;$B3EF46  \
 	LDA $42,x				;$B3EF49   |
 	CMP current_sprite			;$B3EF4B   |
-	BNE CODE_B3EF44				;$B3EF4D   |
+	BNE clc_rts_B3EF44			;$B3EF4D   |
 	JSL CODE_BCFB58				;$B3EF4F   |
 	LDA #$0008				;$B3EF53   |
 	PHK					;$B3EF56   |
@@ -15204,16 +15319,16 @@ CODE_B3EF46:
 	JML [$09F9]				;$B3EF5A  /
 
 CODE_B3EF5D:
-	BCC CODE_B3EF44				;$B3EF5D  \
+	BCC clc_rts_B3EF44			;$B3EF5D  \
 	LDA $09F5				;$B3EF5F   |
 	AND #$0406				;$B3EF62   |
-	BEQ CODE_B3EF44				;$B3EF65   |
+	BEQ clc_rts_B3EF44			;$B3EF65   |
 	BRL CODE_B3EF15				;$B3EF67  /
 
 CODE_B3EF6A:
 	LDA #$000F				;$B3EF6A  \
 	JSL CODE_B8D8BA				;$B3EF6D   |
-	BCS CODE_B3EF44				;$B3EF71   |
+	BCS clc_rts_B3EF44			;$B3EF71   |
 	LDA #CODE_B3F069			;$B3EF73   |
 	STA $0A8A				;$B3EF76   |
 	LDA.w #CODE_B3F069>>16			;$B3EF79   |
@@ -15221,7 +15336,7 @@ CODE_B3EF6A:
 	BRA CODE_B3EF2A				;$B3EF7F  /
 
 CODE_B3EF81:
-	BRL CODE_B3EF44				;$B3EF81  /
+	BRL clc_rts_B3EF44			;$B3EF81  /
 
 CODE_B3EF84:
 	JSL CODE_B8808E				;$B3EF84  \

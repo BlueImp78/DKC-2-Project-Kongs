@@ -645,27 +645,45 @@ DATA_FF0AFE:
 	dw !initcommand_set_animation, $024F
 	dw !initcommand_success
 
-DATA_FF0B18:
+;START OF PATCH (add kongs to ending parade)
+generic_ending_parade_kong:
 	dw sprite.number, $0314
 	dw sprite.x_position, $00E0
 	dw sprite.max_x_speed, $0180
 	dw sprite.x_speed, $0180
 	dw sprite.y_position, $01A0
-	dw !initcommand_set_alt_palette, $0004
 	dw !initcommand_set_oam, $3000
-	dw !initcommand_set_animation, $00A6
 	dw !initcommand_success
 
+;dixie parade
+DATA_FF0B18:
+	dw !initcommand_load_subconfig, generic_ending_parade_kong
+	dw !initcommand_set_alt_palette, $0004
+	dw !initcommand_set_animation, $0003+$A3
+	dw !initcommand_success
+
+;diddy parade
 DATA_FF0B3A:
-	dw sprite.number, $0314
-	dw sprite.x_position, $00E0
-	dw sprite.max_x_speed, $0180
-	dw sprite.x_speed, $0180
-	dw sprite.y_position, $01A0
+	dw !initcommand_load_subconfig, generic_ending_parade_kong
 	dw !initcommand_set_alt_palette, $0001
-	dw !initcommand_set_oam, $3000
 	dw !initcommand_set_animation, $0003
 	dw !initcommand_success
+	
+;donkey parade
+donkey_parade_init:
+	dw !initcommand_load_subconfig, generic_ending_parade_kong
+	dw !initcommand_set_alt_palette, $008D
+	dw !initcommand_set_animation, $0003+!donkey_animation_offset
+	dw !initcommand_success
+
+;kiddy parade
+kiddy_parade_init:
+	dw !initcommand_load_subconfig, generic_ending_parade_kong
+	dw !initcommand_set_alt_palette, $008E
+	dw !initcommand_set_animation, $0003+!kiddy_animation_offset
+	dw !initcommand_success
+
+;END OF PATCH
 
 DATA_FF0B5C:
 	dw !initcommand_load_subconfig, DATA_FF0690
@@ -1210,25 +1228,39 @@ DATA_FF1142:
 	dw !initcommand_set_oam, $2000
 	dw !initcommand_success
 
-DATA_FF1162:
+;START OF PATCH (merge duplicate data in FF)
+unknown_generic_kong_init:
 	dw sprite.number, $0120
 	dw !initcommand_spawn_relative, $0000, $0000
 	dw sprite.render_order, $00ED
 	dw sprite.action, $0000
 	dw sprite.unknown_4E, $2020
-	dw !initcommand_set_palette, diddy_active_sprite_palette
 	dw !initcommand_set_oam, $2000
 	dw !initcommand_success
 
-DATA_FF1182:
-	dw sprite.number, $0120
-	dw !initcommand_spawn_relative, $0000, $0000
-	dw sprite.render_order, $00ED
-	dw sprite.action, $0000
-	dw sprite.unknown_4E, $2020
-	dw !initcommand_set_palette, dixie_active_sprite_palette
-	dw !initcommand_set_oam, $2000
+DATA_FF1162:
+	dw !initcommand_load_subconfig, unknown_generic_kong_init
+	;dw sprite.number, $0120
+	;dw !initcommand_spawn_relative, $0000, $0000
+	;dw sprite.render_order, $00ED
+	;dw sprite.action, $0000
+	;dw sprite.unknown_4E, $2020
+	dw !initcommand_set_palette, diddy_active_sprite_palette
+	;dw !initcommand_set_oam, $2000
 	dw !initcommand_success
+
+DATA_FF1182:
+	dw !initcommand_load_subconfig, unknown_generic_kong_init
+	;dw sprite.number, $0120
+	;dw !initcommand_spawn_relative, $0000, $0000
+	;dw sprite.render_order, $00ED
+	;dw sprite.action, $0000
+	;dw sprite.unknown_4E, $2020
+	dw !initcommand_set_palette, dixie_active_sprite_palette
+	;dw !initcommand_set_oam, $2000
+	dw !initcommand_success
+
+;END OF PATCH
 
 DATA_FF11A2:
 	dw sprite.number, $0120
@@ -5414,8 +5446,10 @@ DATA_FF45DA:
 	dw $0080, $001A, $000C, $0016, $0000, $0800, $00E7
 	dw !initcommand_success
 
+;dixie only
 DATA_FF45FC:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $4005, $8080, $0003, $0040, $000C, $0200
 	dw $0080, $001C, $0010, $0010, $0000, $0800, $0000
@@ -6121,8 +6155,10 @@ DATA_FF5344:
 	dw $0080, $0014, $0020, $0020, $0000, $0800, $0000
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5366:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $4005, $8080, $0003, $005C, $000C, $0200
 	dw $0080, $001A, $0004, $0000, $0000, $0800, $00E2
@@ -6205,8 +6241,10 @@ DATA_FF54DC:
 	dw $0080, $001F, $0080, $0080, $0000, $0800, $D800
 	dw !initcommand_success
 
+;diddy only
 DATA_FF54FE:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $0040, $000C, $0200
 	dw $0080, $001F, $00FF, $00FF, $0000, $0800, $2800
@@ -6360,57 +6398,73 @@ DATA_FF57CC:
 	dw $0080, $0018, $0000, $0040, $0000, $0A00, $0000
 	dw !initcommand_success
 
+;dixie only
 DATA_FF57EE:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $4005, $C000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0040, $0040, $0000, $0800, $00E2
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5810:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $4006, $8000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $0000
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5832:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $4005, $C000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $00E2
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5854:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $4005, $8080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0008, $0008, $0000, $0800, $0000
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5876:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0008, $0008, $0000, $0800, $0000
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5898:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0010, $0010, $0000, $0800, $0000
 	dw !initcommand_success
 
+;dixie only
 DATA_FF58BA:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $C040, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $E7E7
 	dw !initcommand_success
 
+;diddy only
 DATA_FF58DC:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $C040, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $19E7
@@ -6430,15 +6484,19 @@ DATA_FF5920:
 	dw $0080, $001C, $0010, $0010, $0000, $0300, $19E7
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5942:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $8080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $1E00
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5964:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $C080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $00EC
@@ -6451,15 +6509,19 @@ DATA_FF5986:
 	dw $0080, $001C, $0040, $0040, $0000, $0800, $00E2
 	dw !initcommand_success
 
+;diddy only
 DATA_FF59A8:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $1E00
 	dw !initcommand_success
 
+;dixie only
 DATA_FF59CA:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $C080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $00EC
@@ -6472,15 +6534,19 @@ DATA_FF59EC:
 	dw $0080, $001C, $0040, $0040, $0000, $0800, $0000
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5A0E:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $C000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $0000
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5A30:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $C080, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $0000
@@ -6493,8 +6559,10 @@ DATA_FF5A52:
 	dw $0080, $001C, $0008, $0008, $0000, $0400, $0000
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5A74:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $A000, $0003, $005C, $000C, $0200
 	dw $0080, $001C, $0020, $0020, $0000, $0800, $00EC
@@ -6602,8 +6670,10 @@ DATA_FF5C50:
 	dw $0080, $001C, $000C, $000C, $0000, $0380, $23E2
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5C72:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $8000, $0003, $0040, $000C, $0200
 	dw $0080, $001F, $0020, $0020, $0000, $0800, $2831
@@ -6746,43 +6816,55 @@ DATA_FF5EF8:
 	dw $0060, $0018, $0018, $0018, $0000, $0800, $1400
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5F1A:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0801, $0000, $0003, $0040, $000C, $0100
 	dw $0060, $001C, $0020, $0020, $0000, $0800, $00E7
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5F3C:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $0040, $000C, $0100
 	dw $0080, $0018, $0018, $0028, $0000, $0400, $2800
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5F5E:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $8080, $0003, $0040, $000C, $0100
 	dw $0080, $0018, $0036, $0038, $0000, $0400, $2800
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5F80:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $0040, $000C, $0100
 	dw $0080, $0018, $0037, $0038, $0000, $0400, $2800
 	dw !initcommand_success
 
+;dixie only
 DATA_FF5FA2:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000D
 	dw !initcommand_bulk_set
 	dw $0005, $8080, $0003, $0040, $000C, $0100
 	dw $0080, $0018, $0018, $0028, $0000, $0400, $2800
 	dw !initcommand_success
 
+;diddy only
 DATA_FF5FC4:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $0006, $8080, $0003, $0040, $000C, $0100
 	dw $0080, $0018, $000E, $0028, $0000, $0400, $2800
@@ -6970,8 +7052,10 @@ DATA_FF6338:
 	dw $0080, $0020, $0028, $0001, $0000, $0300, $1E28
 	dw !initcommand_success
 
+;diddy only
 DATA_FF635A:
 	dw !initcommand_load_subconfig, DATA_FF360E
+	dw sprite.unknown_1E, $000E
 	dw !initcommand_bulk_set
 	dw $052E, $A0A0, $0003, $8000, $000C, $0020
 	dw $0080, $001C, $0030, $0030, $0101, $0400, $0000
